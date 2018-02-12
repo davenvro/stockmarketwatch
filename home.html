@@ -1,0 +1,100 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+        crossorigin="anonymous" />
+    <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var socket = io();
+            socket.on("chat message", function (msg) {
+                $(".stocklist").load("stocklist.html");
+                $(".stockgraph").load("stockgraph.html");
+            });
+
+            $("#webAppHeader").load("header.html");
+            $("#webAppBody").width($(window).width());
+            $(".stockgraph").width($(window).width() - 425);
+            $(".stockgraph").height($(window).height() - $("#webAppFooter").height() - $("#webAppHeader").height() - 125);
+            $(".stocklist").height($(".stockgraph").height());
+            $(".stocklist").load("stocklist.html");
+            $(".stockgraph").load("stockgraph.html");
+
+            function addStockCode() {
+                $.get("/addstockcode?stockcode=" + $("#stockCode").val(), function (data) {
+                    if (data == "Already in the list") {
+                        $("#prompt").html("Stock code already in the list");
+                        $("#prompt").addClass("warning");
+                    } else if (data) {
+                        var myJSON = JSON.parse(data);
+                        $("#prompt").removeClass("warning");
+                        socket.emit("chat message", $("#stockCode").val());
+                    } else {
+                        $("#prompt").html("Stock code is not in the list");
+                        $("#prompt").addClass("warning");
+                    }
+                });
+            }
+
+            $("#formCode").submit(function () {
+                if ($("#stockCode").val() == "") {
+                    alert("Please provide stock code");
+                    $("#stockCode").focus();
+                } else {
+                    addStockCode();
+                }
+                return false;
+            });
+
+            $("input").focus(function () {
+                $("#prompt").html("Syncs in realtime across clients");
+                $("#prompt").removeClass("warning");
+            });
+
+            $(document).on("click", ".delLink", function () {
+                $.get("/delstockcode?stockcode=" + $(this).parent().parent().attr("id"), function (data) {
+                    socket.emit("chat message", "delete");
+                });
+            });
+        });
+    </script>
+</head>
+
+<body class="container-fluid">
+    <div class="container text-center">
+        <div id="webAppHeader"></div>
+        <div id="webAppBody">
+            <div class="stocklist"></div>
+            <div class="stockgraph">
+            </div>
+            <div class="buttons">
+                <button>Daily</button>
+                <button>Weekly</button>
+                <button>Yearly</button>
+            </div>
+        </div>
+        <div id="webAppFooter">
+            <div>
+                <form class="boxUnit" id="formCode">
+                    <input required type="text" id="stockCode" placeholder="Stock Code" autofocus />
+                    <button id="addStock">Add</button>
+                    <p id="prompt" class="">Syncs in realtime across clients</p>
+                </form>
+            </div>
+            <div>
+                <h1>Stock Market Trends &copy; 2018</h1>
+                <p>Powered by
+                    <a href="https://www.alphavantage.co" target="_blank">AlphaVantage</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
